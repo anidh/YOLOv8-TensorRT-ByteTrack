@@ -4,6 +4,9 @@
 #include "chrono"
 #include "yolov8.hpp"
 #include "opencv2/opencv.hpp"
+#include "BYTETracker.h"
+#include "STrack.h"
+using namespace std;
 
 const std::vector<std::string> CLASS_NAMES = {
 	"person", "bicycle", "car", "motorcycle", "airplane", "bus",
@@ -65,8 +68,10 @@ int main(int argc, char** argv)
 	bool isVideo{ false };
 
 	assert(argc == 3);
+	
 
 	auto yolov8 = new YOLOv8(engine_file_path);
+	auto tracker = new BYTETracker(15,15);
 	yolov8->make_pipe(true);
 
 	if (IsFile(path))
@@ -104,37 +109,80 @@ int main(int argc, char** argv)
 
 	cv::Mat res, image;
 	cv::Size size = cv::Size{ 640, 640 };
-	std::vector<Object> objs;
+	std::vector<Object> objs;	
+	int num_frames = 0;
+	int total_ms = 0;
+	
 
 	cv::namedWindow("result", cv::WINDOW_AUTOSIZE);
 
 	if (isVideo)
 	{
 		cv::VideoCapture cap(path);
-
 		if (!cap.isOpened())
 		{
 			printf("can not open %s\n", path.c_str());
 			return -1;
 		}
+		int frame_width = cap.get(cv::CAP_PROP_FRAME_WIDTH);
+  		int frame_height = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
+		cv::VideoWriter video("outcpp.avi", cv::VideoWriter::fourcc('M','J','P','G'), 10, Size(frame_width,frame_height));
+
 		while (cap.read(image))
 		{
+			num_frames ++;
 			objs.clear();
 			yolov8->copy_from_Mat(image, size);
 			auto start = std::chrono::system_clock::now();
 			yolov8->infer();
 			auto end = std::chrono::system_clock::now();
 			yolov8->postprocess(objs);
-			yolov8->draw_objects(image, res, objs, CLASS_NAMES, COLORS);
+			auto trackerstart = std::chrono::system_clock::now();
+			vector<STrack> output_stracks = tracker->update(objs);
+			auto trackerend = std::chrono::system_clock::now();
+			// cout << "ID Size " << (output_stracks.size()) << endl;
+			total_ms = total_ms + chrono::duration_cast<chrono::microseconds>(trackerend - start).count();
+
+			for (int i = 0; i < output_stracks.size(); i++)
+			{
+				vector<float> tlwh = output_stracks[i].tlwh;
+				bool vertical = tlwh[2] / tlwh[3] > 1.6;
+				
+				if (tlwh[2] * tlwh[3] > 20 && !vertical)
+				{
+					Scalar s = tracker->get_color(output_stracks[i].track_id);
+					cv::putText(image, cv::format("%d", output_stracks[i].track_id), cv::Point(tlwh[0], tlwh[1] - 5), 
+                        0, 0.6, cv::Scalar(0, 0, 255), 2, LINE_AA);
+                	cv::rectangle(image, cv::Rect(tlwh[0], tlwh[1], tlwh[2], tlwh[3]), s, 2);
+					if (output_stracks[i].track_id == 1){
+						cout << "is activated " << output_stracks[i].is_activated << endl;
+						cout << "Track ID " << output_stracks[i].track_id << endl;
+						cout << "State " << output_stracks[i].state << endl;
+						cout << "Frame " << output_stracks[i].frame_id << endl;
+						cout << "Tracklet Len " << output_stracks[i].tracklet_len << endl;
+						cout << "Start Frame " << output_stracks[i].start_frame << endl;
+						cout << "Score " << output_stracks[i].score << endl;
+					}
+				}
+				cv::putText(image, cv::format("frame: %d fps: %d num: %d", num_frames, num_frames * 1000000 / total_ms, output_stracks.size()), 
+                cv::Point(0, 30), 0, 0.6, cv::Scalar(0, 0, 255), 2, LINE_AA);
+			}
 			auto tc = (double)
 				std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.;
-			printf("cost %2.4lf ms\n", tc);
-			cv::imshow("result", res);
-			if (cv::waitKey(10) == 'q')
+			//printf("cost %2.4lf ms\n", tc);
+			auto tt = (double)
+			
+				std::chrono::duration_cast<std::chrono::microseconds>(trackerend - trackerstart).count() / 1000.;
+			//printf("Tracker cost %2.4lf ms\n", tt);
+			cv::imshow("result", image);
+			video.write(image);
+			if (cv::waitKey(1000) == 'q')
 			{
 				break;
 			}
 		}
+			video.release();
+
 	}
 	else
 	{
@@ -147,12 +195,33 @@ int main(int argc, char** argv)
 			yolov8->infer();
 			auto end = std::chrono::system_clock::now();
 			yolov8->postprocess(objs);
-			yolov8->draw_objects(image, res, objs, CLASS_NAMES, COLORS);
+			auto trackerstart = std::chrono::system_clock::now();
+			vector<STrack> output_stracks = tracker->update(objs);
+			auto trackerend = std::chrono::system_clock::now();
+		for (int i = 0; i < output_stracks.size(); i++)
+		{
+			vector<float> tlwh = output_stracks[i].tlwh;
+			bool vertical = tlwh[2] / tlwh[3] > 1.6;
+			if (tlwh[2] * tlwh[3] > 20 && !vertical)
+			{
+				//int s = output_stracks[i].track_id;
+				//cout << " ID " << output_stracks[i].track_id << endl;
+				// yolov8->draw_objects(image, res, objs, CLASS_NAMES, COLORS,output_stracks[i].track_id);
+				//cout << " ID is " << output_stracks[i].track_id << endl;		
+			}
+		}
+			// yolov8->draw_objects(image, res, objs, CLASS_NAMES, COLORS,0);
+			//yolov8->draw_objects(image, res, objs, CLASS_NAMES, COLORS);
 			auto tc = (double)
 				std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.;
-			printf("cost %2.4lf ms\n", tc);
-			cv::imshow("result", res);
-			cv::waitKey(0);
+			printf("Detection cost %2.4lf ms\n", tc);
+			auto tt = (double)
+				std::chrono::duration_cast<std::chrono::microseconds>(trackerend - trackerstart).count() / 1000.;
+			printf("Tracker cost %2.4lf ms\n", tt);
+
+			cv::imshow("result", image);
+			cv::imwrite("result.png",image);
+			cv::waitKey(1000/15);
 		}
 	}
 	cv::destroyAllWindows();

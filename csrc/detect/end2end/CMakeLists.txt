@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.12)
 
 set(CMAKE_CUDA_ARCHITECTURES 60 61 62 70 72 75 86)
-set(CMAKE_CUDA_COMPILER /usr/local/cuda/bin/nvcc)
+set(CMAKE_CUDA_COMPILER /usr/lib/cuda-11.2/bin/nvcc)
 
 project(yolov8 LANGUAGES CXX CUDA)
 
@@ -22,8 +22,8 @@ message(STATUS "OpenCV Libraries: \n${OpenCV_LIBRARIES}\n")
 message(STATUS "OpenCV Headers: \n${OpenCV_INCLUDE_DIRS}\n")
 
 # TensorRT
-set(TensorRT_INCLUDE_DIRS /usr/include/x86_64-linux-gnu)
-set(TensorRT_LIBRARIES /usr/lib/x86_64-linux-gnu)
+set(TensorRT_INCLUDE_DIRS /home/anidhsingh/Downloads/TensorRT-8.4.3.1/include)
+set(TensorRT_LIBRARIES /home/anidhsingh/Downloads/TensorRT-8.4.3.1/lib)
 
 
 message(STATUS "TensorRT Libs: \n${TensorRT_LIBRARIES}\n")
@@ -34,6 +34,7 @@ list(APPEND INCLUDE_DIRS
         ${OpenCV_INCLUDE_DIRS}
         ${TensorRT_INCLUDE_DIRS}
         ./include
+        /usr/local/include/eigen3
         )
 
 list(APPEND ALL_LIBS
@@ -46,9 +47,20 @@ include_directories(${INCLUDE_DIRS})
 
 add_executable(${PROJECT_NAME}
         main.cpp
+        BYTETracker.cpp
+        STrack.cpp
+        utils.cpp
+        lapjv.cpp
+        kalmanFilter.cpp
         include/yolov8.hpp
         include/common.hpp
+        include/BYTETracker.h
+        include/dataType.h
+        include/kalmanFilter.h
+        include/lapjv.h
+        include/logging.h
+        include/STrack.h
         )
 
 target_link_directories(${PROJECT_NAME} PUBLIC ${ALL_LIBS})
-target_link_libraries(${PROJECT_NAME} PRIVATE nvinfer nvinfer_plugin cudart ${OpenCV_LIBS})
+target_link_libraries(${PROJECT_NAME} PRIVATE nvinfer nvinfer_plugin ${CUDA_LIBRARIES} ${OpenCV_LIBS})

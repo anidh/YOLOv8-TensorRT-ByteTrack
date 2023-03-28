@@ -34,6 +34,7 @@ list(APPEND INCLUDE_DIRS
         ${OpenCV_INCLUDE_DIRS}
         ${TensorRT_INCLUDE_DIRS}
         ./include
+        /usr/local/include/eigen3
         )
 
 list(APPEND ALL_LIBS
@@ -46,8 +47,15 @@ include_directories(${INCLUDE_DIRS})
 
 add_executable(${PROJECT_NAME}
         main.cpp
+        BYTETracker.cpp
         include/yolov8.hpp
         include/common.hpp
+        include/BYTETracker.h
+        include/dataType.h
+        include/kalmanFilter.h
+        include/lapjv.h
+        include/logging.h
+        include/STrack.h
         )
 
 link_directories(${ALL_LIBS})

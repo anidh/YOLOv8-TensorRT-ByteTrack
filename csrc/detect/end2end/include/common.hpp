@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include "NvInfer.h"
+#include "BYTETracker.h"
 
 #define CHECK(call)                                   \
 do                                                    \
@@ -137,12 +138,12 @@ namespace det
 		std::string name;
 	};
 
-	struct Object
-	{
-		cv::Rect_<float> rect;
-		int label = 0;
-		float prob = 0.0;
-	};
+	// struct Object
+	// {
+	// 	cv::Rect_<float> rect;
+	// 	int label = 0;
+	// 	float prob = 0.0;
+	// };
 
 	struct PreParam
 	{

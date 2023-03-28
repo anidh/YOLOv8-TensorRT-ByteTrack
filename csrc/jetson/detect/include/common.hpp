@@ -136,13 +136,14 @@ namespace det
 		nvinfer1::Dims dims;
 		std::string name;
 	};
-
+	namespace detr{
 	struct Object
 	{
 		cv::Rect_<float> rect;
 		int label = 0;
 		float prob = 0.0;
 	};
+	}
 
 	struct PreParam
 	{

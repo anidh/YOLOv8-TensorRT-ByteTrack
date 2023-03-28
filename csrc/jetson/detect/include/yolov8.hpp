@@ -29,7 +29,8 @@ public:
 		cv::Mat& res,
 		const std::vector<Object>& objs,
 		const std::vector<std::string>& CLASS_NAMES,
-		const std::vector<std::vector<unsigned int>>& COLORS
+		const std::vector<std::vector<unsigned int>>& COLORS,
+		int ID
 	);
 	int num_bindings;
 	int num_inputs = 0;
@@ -362,9 +363,10 @@ void YOLOv8::draw_objects(
 	cv::Mat& res,
 	const std::vector<Object>& objs,
 	const std::vector<std::string>& CLASS_NAMES,
-	const std::vector<std::vector<unsigned int>>& COLORS
+	const std::vector<std::vector<unsigned int>>& COLORS,
+	int ID
 )
-{
+{	
 	res = image.clone();
 	for (auto& obj : objs)
 	{
@@ -383,9 +385,10 @@ void YOLOv8::draw_objects(
 		char text[256];
 		sprintf(
 			text,
-			"%s %.1f%%",
+			"%s %.1f%% %d",
 			CLASS_NAMES[obj.label].c_str(),
-			obj.prob * 100
+			obj.prob * 100,
+			ID
 		);
 
 		int baseLine = 0;
